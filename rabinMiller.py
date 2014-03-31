@@ -32,6 +32,7 @@ def countEpsExpFromNumberOfTests(k, prob=4):
 def findGreatestPowerOfTwo(n):
     """
     Znajduje liczby s,q takie, ze n-1==2**s * q, gdzie q nie dzieli sie przez 2
+    s jest to najwieksza liczba, spelniajaca takie rownanie
     """
     s=0
     m = n-1
@@ -44,6 +45,28 @@ def findGreatestPowerOfTwo(n):
             break
     return s,q
 
+"""
+Pojedynczy test dla liczby n i swiadka witness
+Zwraca True, gdy przypuszczamy pierwszosc
+Zwraca False, gdy potwierdzilismy zlozonosc
+"""
+def testPrimalityLoop(n,witness):
+
+    s,q = findGreatestPowerOfTwo(n)
+    x = pow(witness,q,n) #potega modulo - duzo szybsza niz w**q % n
+    if(x==1 or x == n-1):
+        return True
+    for r in xrange(1,s,1): #test Millera dla swiadka witness (s jest rozlacznie)
+        x = pow(x,2,n)
+        if(x==1):
+             #poniewaz kwadratem 1 jest 1 to liczba jest zlozona
+            return False #i wiemy to juz teraz - bez dalszych prob
+        if(x==n-1):
+            return True #kolejna glowna petla
+
+
+    return False #jesli nigdzie nie wystapila reszta n-1
+
 def rabinMillerNaive(n, k):
     """
     Wykonuje test sprawdzania pierwszosci liczby n (k razy)
@@ -53,10 +76,12 @@ def rabinMillerNaive(n, k):
     Wyjatki sa rzucane w wypadku wybrania blednej liczby
     """
     n = int(n) #wprost wskazujemy na int
-    if (n<3):
+    if (n<2):
         raise Exception("Number less then 3")
+    if (n==2): #sytuacja wyjatkowa
+        return True
     if (n%2==0):
-        raise Exception("Even number")
+        return False
     if (k>(n-3)):
         raise Exception("Too many iterations of test: k>n-3") #jesli jest mniej potencjalnych swiadkow niz iteracji testu
 
@@ -71,25 +96,19 @@ def rabinMillerNaive(n, k):
                 witnessSet.add(witness)
                 break
 
-        s,q = findGreatestPowerOfTwo(n)
-        x = pow(witness,q,n) #potega modulo - duzo szybsza niz w**q % n
-        if(x==1 or x == n-1):
-            continue #kolejna glowna petla
-        for r in xrange(1,s-1,1): #test Millera dla swiadka witness
-            x = pow(x,2,n)
-            if(x==1):
-                probPrime=False #poniewaz kwadratem 1 jest 1 to liczba jest zlozona
-                return probPrime #i wiemy to juz teraz - bez dalszych prob
-            if(x==n-1):
-                continue #kolejna glowna petla
-
-            probPrime=False
-            return probPrime #jesli nigdzie nie wystapila reszta n-1
+        res=testPrimalityLoop(n,witness)
+        if(res):
+            continue #jesli nie potwierdzilismy zlozonosci, to glowna petla
+        else:
+            return False #jesli udowodnilismy zlozonosc
 
     #jesli nigdzie nie znalezlismy dowodu, ze nie jest zlozona
     #zwracamy wynik, iz jest prawdopodobnie pierwsza
-    return probPrime
+    return True
 
+
+def rabinMillerForLargeNumbers():
+    return False
 
 if __name__ == "__main__":
     """
@@ -103,6 +122,6 @@ if __name__ == "__main__":
 
     print("\nZaczynaja sie schody")
     numberOfIterations=7
-    for numb in [341,561,2047,8911, 3215031751]:
+    for numb in [101,6277,7919, 341,561,2047,8911, 3215031751]:
         print(str(numb)+" jest pierwsza? "+str(rabinMillerNaive(numb,numberOfIterations))+"  Zakladamy epsilon na poziomie 10**-"+\
             str(countNumberOfTestsWithEps(numberOfIterations)))
