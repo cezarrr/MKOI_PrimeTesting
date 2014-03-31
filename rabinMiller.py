@@ -45,14 +45,16 @@ def findGreatestPowerOfTwo(n):
             break
     return s,q
 
-"""
-Pojedynczy test dla liczby n i swiadka witness
-Zwraca True, gdy przypuszczamy pierwszosc
-Zwraca False, gdy potwierdzilismy zlozonosc
-"""
-def testPrimalityLoop(n,witness):
 
-    s,q = findGreatestPowerOfTwo(n)
+def testPrimalityLoop(n,witness,s,q):
+    """
+    Pojedynczy test dla liczby n i swiadka witness oraz liczb s i q takich,
+    ze  n-1==2**s * q, gdzie q nie dzieli sie przez 2
+
+    Zwraca True, gdy przypuszczamy pierwszosc
+    Zwraca False, gdy potwierdzilismy zlozonosc
+    """
+
     x = pow(witness,q,n) #potega modulo - duzo szybsza niz w**q % n
     if(x==1 or x == n-1):
         return True
@@ -87,6 +89,7 @@ def rabinMillerNaive(n, k):
 
     probPrime = True
     witnessSet = set()
+    s,q = findGreatestPowerOfTwo(n)
 
     #GLOWNA PETLA
     for currK in xrange(k): #wykonujemy k-razy
@@ -96,7 +99,8 @@ def rabinMillerNaive(n, k):
                 witnessSet.add(witness)
                 break
 
-        res=testPrimalityLoop(n,witness)
+
+        res=testPrimalityLoop(n,witness,s,q)
         if(res):
             continue #jesli nie potwierdzilismy zlozonosci, to glowna petla
         else:
@@ -107,8 +111,58 @@ def rabinMillerNaive(n, k):
     return True
 
 
-def rabinMillerForLargeNumbers():
-    return False
+def rabinMillerForLargeNumbers(n,optK=10):
+    """
+    Wykonuje test sprawdzania pierwszosci liczby n
+
+    Swiadkowie sa wybierani tak, aby potwierdzic z pewnoscia pierwszosc lub zlozonosc liczby n<341550071728321
+    Swiadkowie dla odpowiednich n sa wybierani wedlug klucza z http://primes.utm.edu/prove/prove2_3.html
+
+    Jesli liczba  n>341550071728321 uruchamiany jest test naiwny z optK powtorzeniami (swiadkami)
+
+    Wyjatki sa rzucane w wypadku wybrania blednej liczby
+    """
+    n = int(n) #wprost wskazujemy na int
+    if (n<2):
+        raise Exception("Number less then 3")
+    if (n==2): #sytuacja wyjatkowa
+        return True
+    if (n%2==0):
+        return False
+    if (optK>(n-3)):
+        raise Exception("Too many iterations of test: k>n-3") #jesli jest mniej potencjalnych swiadkow niz iteracji testu
+
+
+
+    if(n>=341550071728321): #jesli liczba jest wieksza od udowodnionej
+        return rabinMillerNaive(n,optK)
+
+    witnessSetToTry=set()
+
+    #znane liczby
+    if(n<1373653):
+        witnessSetToTry = (2,3)
+    elif(n<25326001):
+        witnessSetToTry = (2,3,5)
+    elif(n<118670087467):
+        witnessSetToTry = (2, 3, 5, 7)
+    elif(n<2152302898747):
+        witnessSetToTry = (2, 3, 5, 7, 11)
+    elif(n<3474749660383):
+        witnessSetToTry = (2, 3, 5, 7, 11, 13)
+    elif(n<341550071728321):
+        witnessSetToTry = (2, 3, 5, 7, 11, 13, 17)
+
+    #znane wyjatki od tej reguly
+    if (n==3215031751):
+        return False
+
+    s,q = findGreatestPowerOfTwo(n)
+    for w in witnessSetToTry:
+        if (testPrimalityLoop(n,w,s,q)==False):
+            return False
+
+    return True
 
 if __name__ == "__main__":
     """
@@ -120,8 +174,17 @@ if __name__ == "__main__":
     print(findGreatestPowerOfTwo(289)) #(5,9), bo 2**5==32, a 32*9 == 289-1
     print(findGreatestPowerOfTwo(129)) #(7,1), bo 2**7==128==129-1
 
-    print("\nZaczynaja sie schody")
-    numberOfIterations=7
-    for numb in [101,6277,7919, 341,561,2047,8911, 3215031751]:
-        print(str(numb)+" jest pierwsza? "+str(rabinMillerNaive(numb,numberOfIterations))+"  Zakladamy epsilon na poziomie 10**-"+\
+    print("\nTesty pierwszosci")
+    numberOfIterations=10
+    numbertToTest = [101,6277,7919, 341,561,2047,8911, 3215031751, 5394826801]
+    print("\nRabin Miller z wybranymi swiadkami")
+    for numb in numbertToTest:
+        print(str(numb)+" jest pierwsza? "+str(rabinMillerForLargeNumbers(numb,numberOfIterations)))
+    print("\nRabin Miller naiwny (losowi swiadkowie)")
+    for numb in numbertToTest:
+        testResult=rabinMillerNaive(numb,numberOfIterations)
+        print(str(numb)+" jest pierwsza? "+str(testResult)),
+        if(testResult):
+            print("   Osiagniety epsilon na poziomie 10**-"+\
             str(countNumberOfTestsWithEps(numberOfIterations)))
+        else: print ""
